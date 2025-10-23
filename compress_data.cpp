@@ -21,7 +21,7 @@ int main() {
         std::cout << "\n=== Processing wave_3d variable ===" << std::endl;
 
         int step = 0;
-        while (reader.BeginStep() == adios2::StepStatus::OK) {
+        while (reader.BeginStep() == adios2::StepStatus::OK &&  step != 20 ) {
 
             adios2::Variable<float> varWaveRead = readIO.InquireVariable<float>("wave_3d");
 

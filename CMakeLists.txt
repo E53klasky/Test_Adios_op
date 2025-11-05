@@ -16,7 +16,7 @@ set_target_properties(PkgConfig::ZSTD PROPERTIES
 
 find_package(MPI REQUIRED)
 find_package(ADIOS2 REQUIRED)
-find_package(caesar REQUIRED)
+find_package(CAESAR REQUIRED)
 find_package(Torch QUIET)
 
 # --- gen_data ---

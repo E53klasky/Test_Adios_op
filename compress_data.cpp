@@ -14,7 +14,7 @@ int main() {
 
         std::cout << "Setting up compressed output file: compressed_output.bp" << std::endl;
         adios2::IO writeIO = adios.DeclareIO("WriteIO");
-        writeIO.SetEngine("BP4");
+        writeIO.SetEngine("BP5");
         auto op = adios.DefineOperator("SharedCompressor" , "CAESAR" , { {"error_bound","0.01"},{"mode","CAESAR_V"}, {"batch_size","32"} });
         adios2::Engine writer = writeIO.Open("compressed_output.bp" , adios2::Mode::Write);
 

@@ -44,7 +44,7 @@ int main()
     {
         adios2::ADIOS adios;
         adios2::IO io = adios.DeclareIO("TestIO");
-        io.SetEngine("BP4");
+        io.SetEngine("BP5");
 
         // Open file for writing
         adios2::Engine writer = io.Open("test_caesar_data.bp" , adios2::Mode::Write);

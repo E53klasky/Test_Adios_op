@@ -4,6 +4,14 @@ project(Test_Adios_op CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable Debug mode by default (adds -g, disables optimization)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+endif()
+
+# Optionally add more detailed debugging flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3")
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ZSTD REQUIRED libzstd)
 
@@ -37,3 +45,14 @@ target_link_libraries(compress_data
         caesar::caesar_lib
         ${ZSTD_LIBRARIES}
 )
+
+# --- test_decompress ---
+add_executable(test_decompress test_decompress.cpp)
+target_link_libraries(test_decompress
+    PRIVATE
+        MPI::MPI_CXX
+        adios2::cxx11_mpi
+        caesar::caesar_lib
+        ${ZSTD_LIBRARIES}
+)
+

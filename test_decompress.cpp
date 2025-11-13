@@ -2,6 +2,7 @@
 #include <vector>
 #include <limits>
 #include <numeric>
+#include <algorithm> // for std::sort
 #include <adios2.h>
 
 #if ADIOS2_USE_MPI
@@ -59,19 +60,37 @@ int main(int argc , char** argv)
 
         reader.Get(var , data.data() , adios2::Mode::Sync);
 
+        // Calculate min, max
         float minVal = std::numeric_limits<float>::max();
         float maxVal = std::numeric_limits<float>::lowest();
         for (float v : data)
         {
-            if (v < minVal)
-                minVal = v;
-            if (v > maxVal)
-                maxVal = v;
+            if (v < minVal) minVal = v;
+            if (v > maxVal) maxVal = v;
+        }
+
+        // Calculate average
+        double sum = std::accumulate(data.begin() , data.end() , 0.0);
+        double avg = sum / data.size();
+
+        // Calculate median
+        std::sort(data.begin() , data.end());
+        double median;
+        if (data.size() % 2 == 0)
+        {
+            median = 0.5 * (data[data.size() / 2 - 1] + data[data.size() / 2]);
+        }
+        else
+        {
+            median = data[data.size() / 2];
         }
 
         std::cout << "Step " << reader.CurrentStep()
             << " -> min = " << minVal
-            << ", max = " << maxVal << std::endl;
+            << ", max = " << maxVal
+            << ", avg = " << avg
+            << ", median = " << median
+            << std::endl;
 
         reader.EndStep();
     }

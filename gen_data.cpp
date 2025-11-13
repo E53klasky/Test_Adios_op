@@ -3,34 +3,51 @@
 #include <vector>
 #include <cmath>
 
-// Generate 3D data: A wave propagating through a 3D medium over time
-// Dimensions: [time, y, x] = [20, 256, 256]
-std::vector<float> generate_3d_wave_data(int t , int ny , int nx)
+#include <vector>
+#include <cmath>
+#include <random>
+#include <algorithm> // for std::swap
+
+
+std::vector<float> generate_3d_wave_data(int t , int ny , int nx , float n = -1.0f , float m = 1.0f)
 {
-    std::vector<float> data(t * ny * nx);
+    if (m < n) std::swap(n , m);
+
+    const size_t total = static_cast<size_t>(t) * ny * nx;
+    std::vector<float> data(total);
+
+    static thread_local std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> noise_dist(-0.5f , 0.5f);
 
     const float cx = nx / 2.0f;
     const float cy = ny / 2.0f;
-    const float omega = 0.3f; // Angular frequency
+    const float omega = 0.2f;
 
-    for (int time = 0; time < t; time++)
+    for (int time = 0; time < t; ++time)
     {
-        for (int y = 0; y < ny; y++)
-        {
-            for (int x = 0; x < nx; x++)
-            {
-                int idx = time * ny * nx + y * nx + x;
 
-                // Distance from center
+        float time_scale = 0.5f + ((rand() % 1000) / 1000.0f) + std::sin(rand() % 1000 / 1000.0f);
+        for (int y = 0; y < ny; ++y)
+        {
+            for (int x = 0; x < nx; ++x)
+            {
+                size_t idx = static_cast<size_t>(time) * ny * nx + y * nx + x;
+
                 float dx = x - cx;
                 float dy = y - cy;
                 float r = std::sqrt(dx * dx + dy * dy);
 
-                // Propagating wave equation: A * sin(k*r - omega*t)
-                float phase = 0.1f * r - omega * time;
-                float amplitude = 1.0f / (1.0f + 0.01f * r); // Decay with distance
+                float phase1 = 0.1f * r - omega * time;
+                float phase2 = 0.15f * r + 0.3f * time;
+                float amplitude = 1.0f / (1.0f + 0.01f * r);
 
-                data[idx] = amplitude * std::sin(phase);
+                float wave_val = amplitude * (std::sin(phase1) + 0.5f * std::sin(phase2));
+
+                float val = wave_val * time_scale + noise_dist(rng);
+
+                val = ((val + 1.0f) / 2.0f) * (m - n) + n;
+
+                data[idx] = val;
             }
         }
     }
@@ -46,14 +63,13 @@ int main()
         adios2::IO io = adios.DeclareIO("TestIO");
         io.SetEngine("BP5");
 
-        // Open file for writing
         adios2::Engine writer = io.Open("test_caesar_data.bp" , adios2::Mode::Write);
 
         std::cout << "Generating test data..." << std::endl;
 
-        // ========== 3D Data: Wave Propagation ==========
+
         std::cout << "\n=== 3D Data: Wave Propagation ===" << std::endl;
-        const int t_3d = 20;   // Time steps (>= 8 for CAESAR)
+        const int t_3d = 20;
         const int ny_3d = 256;
         const int nx_3d = 256;
 
@@ -66,7 +82,7 @@ int main()
             { 0, 0, 0 } ,
             { static_cast<size_t>(t_3d), static_cast<size_t>(ny_3d), static_cast<size_t>(nx_3d) });
 
-        // Write across timesteps
+
         for (int step = 0; step < 20; step++)
         {
             auto wave_data = generate_3d_wave_data(t_3d , ny_3d , nx_3d);

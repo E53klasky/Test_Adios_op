@@ -56,3 +56,4 @@ target_link_libraries(test_decompress
         ${ZSTD_LIBRARIES}
 )
 
+

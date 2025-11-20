@@ -1,16 +1,12 @@
 #!/bin/bash
 # =====================================================================
-# UF HiPerGator ADIOS2 + CAESAR environment setup script
-# Author: Ethan Klasky
+# UF HiPerGator ADIOS2 + CAESAR environment setup script (CLEAN VERSION)
 # =====================================================================
 
-# --- Step 1: Clean out any old ADIOS2 or CAESAR references from PATHs
+# Function to remove ANY existing ADIOS/CAESAR/MGARD/nvcomp/CUDA/etc paths
 clean_path() {
     echo "$1" | tr ':' '\n' | \
-        grep -v '/home/adios/local/adios-install' | \
-        grep -v '/opt/adios2' | \
-        grep -v '/lustre/blue/ranka/eklasky/ADIOS2/install' | \
-        grep -v '/lustre/blue/ranka/eklasky/CAESAR_C/install' | \
+        grep -v -E 'ADIOS|adios|CAESAR|caesar|MGARD|mgard|nvcomp|cuda|CUDA|Torch|torch|mpich|mpi' | \
         paste -sd:
 }
 
@@ -21,32 +17,45 @@ export CPATH=$(clean_path "$CPATH")
 export PKG_CONFIG_PATH=$(clean_path "$PKG_CONFIG_PATH")
 export MANPATH=$(clean_path "$MANPATH")
 
-# --- Step 2: Set new installation prefixes
+# --- Step 2: Installation prefixes
 export ADIOS2_DIR=/lustre/blue/ranka/eklasky/ADIOS2/install
 export CAESAR_DIR=/lustre/blue/ranka/eklasky/CAESAR_C/install
+export Torch_DIR=/lustre/blue/ranka/eklasky/caesar_venv/lib/python3.11/site-packages/torch/share/cmake/Torch
 
-# --- Step 3: Add to environment paths
-export PATH=$ADIOS2_DIR/bin:$PATH
-export LD_LIBRARY_PATH=$ADIOS2_DIR/lib64:$CAESAR_DIR/lib:$LD_LIBRARY_PATH
-export LIBRARY_PATH=$ADIOS2_DIR/lib64:$CAESAR_DIR/lib:$LIBRARY_PATH
+# --- Step 3: Add new paths cleanly
+export PATH=$ADIOS2_DIR/bin:$CAESAR_DIR/bin:$PATH
+export LD_LIBRARY_PATH=$ADIOS2_DIR/lib:$CAESAR_DIR/lib:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$ADIOS2_DIR/lib:$CAESAR_DIR/lib:$LIBRARY_PATH
 export CPATH=$ADIOS2_DIR/include:$CAESAR_DIR/include:$CPATH
-export PKG_CONFIG_PATH=$ADIOS2_DIR/lib64/pkgconfig:$CAESAR_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=$ADIOS2_DIR/lib/pkgconfig:$CAESAR_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
 export MANPATH=$ADIOS2_DIR/share/man:$MANPATH
 
-# --- Step 4: Print summary
+
+# --- MGARD installation ---
+export MGARD_DIR=/home/eklasky/Software/MGARD/install-serial
+
+export PATH=$MGARD_DIR/bin:$PATH
+export LD_LIBRARY_PATH=$MGARD_DIR/lib64:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$MGARD_DIR/lib64:$LIBRARY_PATH
+export CPATH=$MGARD_DIR/include:$CPATH
+export PKG_CONFIG_PATH=$MGARD_DIR/lib64/pkgconfig:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=/lustre/blue/ranka/eklasky/ADIOS2/install/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/blue/ranka/eklasky/caesar_venv/lib/python3.11/site-packages/torch/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HOME/local/nvcomp-linux-x86_64-5.0.0.6_cuda12-archive/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/apps/compilers/cuda/12.8.1/lib64:$LD_LIBRARY_PATH
+# --- Summary
 echo "============================================================"
-echo "Environment set for ADIOS2 + CAESAR"
+echo "Environment set CLEANLY for ADIOS2 + CAESAR + Torch"
 echo "------------------------------------------------------------"
 echo "ADIOS2_DIR       = $ADIOS2_DIR"
 echo "CAESAR_DIR       = $CAESAR_DIR"
+echo "Torch_DIR        = $Torch_DIR"
 echo
-echo "PATH additions:"
-echo "  $(echo $PATH | tr ':' '\n' | grep -E 'ADIOS2|CAESAR')"
+echo "PATH:"
+echo "$PATH" | tr ':' '\n'
 echo
-echo "LD_LIBRARY_PATH  = $LD_LIBRARY_PATH"
-echo "LIBRARY_PATH     = $LIBRARY_PATH"
-echo "CPATH            = $CPATH"
-echo "PKG_CONFIG_PATH  = $PKG_CONFIG_PATH"
-echo "MANPATH          = $MANPATH"
+echo "LD_LIBRARY_PATH:"
+echo "$LD_LIBRARY_PATH" | tr ':' '\n'
+echo
 echo "============================================================"
 

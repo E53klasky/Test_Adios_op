@@ -39,7 +39,10 @@ export LD_LIBRARY_PATH=$MGARD_DIR/lib64:$LD_LIBRARY_PATH
 export LIBRARY_PATH=$MGARD_DIR/lib64:$LIBRARY_PATH
 export CPATH=$MGARD_DIR/include:$CPATH
 export PKG_CONFIG_PATH=$MGARD_DIR/lib64/pkgconfig:$PKG_CONFIG_PATH
-
+export LD_LIBRARY_PATH=/lustre/blue/ranka/eklasky/ADIOS2/install/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/blue/ranka/eklasky/caesar_venv/lib/python3.11/site-packages/torch/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HOME/local/nvcomp-linux-x86_64-5.0.0.6_cuda12-archive/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/apps/compilers/cuda/12.8.1/lib64:$LD_LIBRARY_PATH
 # --- Summary
 echo "============================================================"
 echo "Environment set CLEANLY for ADIOS2 + CAESAR + Torch"

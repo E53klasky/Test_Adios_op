@@ -14,6 +14,7 @@ int main() {
     adios2::Engine reader =
         readIO.Open("test_caesar_data.bp", adios2::Mode::Read);
 
+
     std::cout << "Setting up compressed output file: compressed_output.bp"
               << std::endl;
     adios2::IO writeIO = adios.DeclareIO("WriteIO");

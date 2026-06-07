@@ -95,7 +95,7 @@ int main()
             { 0, 0, 0 },
             { (size_t)t_3d, (size_t)ny_3d, (size_t)nx_3d });
 
-        for (int step = 0; step < 20; ++step)
+        for (int step = 0; step < 3; ++step)
         {
             auto wave_data = generate_3d_wave_data(t_3d, ny_3d, nx_3d);
             auto dummy1 = generate_dummy_field(wave_data, 0.8f);

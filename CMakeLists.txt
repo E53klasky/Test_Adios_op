@@ -42,7 +42,7 @@ target_link_libraries(compress_data
     PRIVATE
         MPI::MPI_CXX
         adios2::cxx11_mpi
-        caesar::caesar_lib
+        caesar::caesar
         ${ZSTD_LIBRARIES}
 )
 
@@ -52,12 +52,21 @@ target_link_libraries(test_decompress
     PRIVATE
         MPI::MPI_CXX
         adios2::cxx11_mpi
-        caesar::caesar_lib
+        caesar::caesar
         ${ZSTD_LIBRARIES}
 )
 
 add_executable(convert_to_bin convert_to_bin.cpp)
 target_link_libraries(convert_to_bin
+    PRIVATE
+        MPI::MPI_CXX
+        adios2::cxx11_mpi
+        ${ZSTD_LIBRARIES}
+)
+
+
+add_executable(gen_small_data gen_small_data.cpp)
+target_link_libraries(gen_small_data
     PRIVATE
         MPI::MPI_CXX
         adios2::cxx11_mpi

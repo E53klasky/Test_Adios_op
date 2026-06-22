@@ -95,7 +95,8 @@ int main()
             { 0, 0, 0 },
             { (size_t)t_3d, (size_t)ny_3d, (size_t)nx_3d });
 
-        for (int step = 0; step < 3; ++step)
+	    unsigned int total_steps =3;
+        for (unsigned int step = 0; step < total_steps; ++step)
         {
             auto wave_data = generate_3d_wave_data(t_3d, ny_3d, nx_3d);
             auto dummy1 = generate_dummy_field(wave_data, 0.8f);
@@ -107,7 +108,7 @@ int main()
             writer.Put(var_dummy2, dummy2.data());
             writer.EndStep();
 
-            std::cout << "  Written timestep " << step + 1 << "/20" << std::endl;
+            std::cout << "  Written timestep " << step + 1 << "/" <<total_steps <<std::endl;
         }
 
         writer.Close();

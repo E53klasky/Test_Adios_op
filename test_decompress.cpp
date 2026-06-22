@@ -2,100 +2,155 @@
 #include <vector>
 #include <limits>
 #include <numeric>
-#include <algorithm> // for std::sort
+#include <algorithm>
 #include <adios2.h>
+#include <cmath>
 
 #if ADIOS2_USE_MPI
 #include <mpi.h>
 #endif
 
-int main(int argc , char** argv)
+int main(int argc, char** argv)
 {
 #if ADIOS2_USE_MPI
-    MPI_Init(&argc , &argv);
+    MPI_Init(&argc, &argv);
     MPI_Comm comm = MPI_COMM_WORLD;
 #else
     MPI_Comm comm = MPI_COMM_NULL;
 #endif
 
-    if (argc < 3)
+    if (argc < 4)
     {
-        std::cerr << "Usage: " << argv[0] << " <inputFile> <variableName>" << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " <inputFile_compressed> <original_input> <variableName>" << std::endl;
 #if ADIOS2_USE_MPI
         MPI_Finalize();
 #endif
         return -1;
     }
 
-    std::string inputFile = argv[1];
-    std::string varName = argv[2];
+    std::string inputFile = argv[1]; // compressed file with reconstructed data
+    std::string originalFile = argv[2]; // original file with uncompressed data for comparison
+    std::string varName = argv[3];
 
 #if ADIOS2_USE_MPI
-    adios2::ADIOS adios("" , comm);
+    adios2::ADIOS adios("", comm);
 #else
     adios2::ADIOS adios("");
 #endif
 
     auto io = adios.DeclareIO("Reader");
-    auto reader = io.Open(inputFile , adios2::Mode::Read);
+    auto reader = io.Open(inputFile, adios2::Mode::Read);
+    auto originalIO = adios.DeclareIO("OriginalReader");
+    auto originalReader = originalIO.Open(originalFile, adios2::Mode::Read);
 
     while (true)
     {
         auto status = reader.BeginStep();
+        auto originalStatus = originalReader.BeginStep();
+
+        if (originalStatus != adios2::StepStatus::OK)
+        {
+            std::cerr << "No more steps in original file!" << std::endl;
+            break;
+        }
         if (status != adios2::StepStatus::OK)
             break;
 
         auto var = io.InquireVariable<float>(varName);
+        auto originalVar = originalIO.InquireVariable<float>(varName);
+
         if (!var)
         {
-            std::cerr << "Variable " << varName << " not found!" << std::endl;
+            std::cerr << "Variable " << varName << " not found in compressed file!" << std::endl;
+            break;
+        }
+        if (!originalVar)
+        {
+            std::cerr << "Variable " << varName << " not found in original file!" << std::endl;
             break;
         }
 
+        // --- Read reconstructed (compressed) data ---
         std::size_t totalSize = 1;
         for (auto s : var.Shape())
             totalSize *= s;
+        std::vector<float> reconstructed(totalSize);
+        reader.Get(var, reconstructed.data(), adios2::Mode::Sync);
 
-        std::vector<float> data(totalSize);
+        // --- Read original data ---
+        std::size_t origSize = 1;
+        for (auto s : originalVar.Shape())
+            origSize *= s;
+        std::vector<float> original(origSize);
+        originalReader.Get(originalVar, original.data(), adios2::Mode::Sync);
 
-        reader.Get(var , data.data() , adios2::Mode::Sync);
+        if (original.size() != reconstructed.size())
+        {
+            std::cerr << "Step compressed: " << reader.CurrentStep()
+                       << ": size mismatch! original=" << original.size()
+                       << ", reconstructed=" << reconstructed.size() << std::endl;
+            reader.EndStep();
+            originalReader.EndStep();
+            continue;
+        }
 
-        // Calculate min, max
+        // --- Stats on reconstructed data ---
         float minVal = std::numeric_limits<float>::max();
         float maxVal = std::numeric_limits<float>::lowest();
-        for (float v : data)
+        for (float v : reconstructed)
         {
             if (v < minVal) minVal = v;
             if (v > maxVal) maxVal = v;
         }
 
-        // Calculate average
-        double sum = std::accumulate(data.begin() , data.end() , 0.0);
-        double avg = sum / data.size();
+        double sum = std::accumulate(reconstructed.begin(), reconstructed.end(), 0.0);
+        double avg = sum / reconstructed.size();
 
-        // Calculate median
-        std::sort(data.begin() , data.end());
+        // Use a sorted copy for median so 'reconstructed' order is preserved for MSE
+        std::vector<float> sortedData(reconstructed);
+        std::sort(sortedData.begin(), sortedData.end());
         double median;
-        if (data.size() % 2 == 0)
-        {
-            median = 0.5 * (data[data.size() / 2 - 1] + data[data.size() / 2]);
-        }
+        if (sortedData.size() % 2 == 0)
+            median = 0.5 * (sortedData[sortedData.size() / 2 - 1] + sortedData[sortedData.size() / 2]);
         else
-        {
-            median = data[data.size() / 2];
-        }
+            median = sortedData[sortedData.size() / 2];
 
-        std::cout << "Step " << reader.CurrentStep()
-            << " -> min = " << minVal
-            << ", max = " << maxVal
-            << ", avg = " << avg
-            << ", median = " << median
-            << std::endl;
+        std::cout << "Step compressed: " << reader.CurrentStep()
+                   << " -> min = " << minVal
+                   << ", max = " << maxVal
+                   << ", avg = " << avg
+                   << ", median = " << median
+                   << std::endl;
+
+        // --- NRMSE between original and reconstructed ---
+        double mse = 0.0;
+        for (size_t i = 0; i < original.size(); ++i)
+        {
+            double diff = static_cast<double>(original[i]) -
+                          static_cast<double>(reconstructed[i]);
+            mse += diff * diff;
+        }
+        mse /= original.size();
+
+        double rmse = std::sqrt(mse);
+
+        auto [minIt, maxIt] = std::minmax_element(original.begin(), original.end());
+        double range = static_cast<double>(*maxIt) - static_cast<double>(*minIt);
+
+        double nrmse = (range != 0.0) ? (rmse / range) : 0.0;
+
+        std::cout << "Step compressed: " << reader.CurrentStep()
+                   << ", NRMSE = " << nrmse
+                   << std::endl;
 
         reader.EndStep();
+        originalReader.EndStep();
     }
 
     reader.Close();
+    originalReader.Close();
+
 #if ADIOS2_USE_MPI
     MPI_Finalize();
 #endif

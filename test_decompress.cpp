@@ -6,38 +6,20 @@
 #include <adios2.h>
 #include <cmath>
 
-#if ADIOS2_USE_MPI
-#include <mpi.h>
-#endif
-
 int main(int argc, char** argv)
 {
-#if ADIOS2_USE_MPI
-    MPI_Init(&argc, &argv);
-    MPI_Comm comm = MPI_COMM_WORLD;
-#else
-    MPI_Comm comm = MPI_COMM_NULL;
-#endif
-
     if (argc < 4)
     {
         std::cerr << "Usage: " << argv[0]
                   << " <inputFile_compressed> <original_input> <variableName>" << std::endl;
-#if ADIOS2_USE_MPI
-        MPI_Finalize();
-#endif
         return -1;
     }
 
-    std::string inputFile = argv[1]; // compressed file with reconstructed data
+    std::string inputFile = argv[1];    // compressed file with reconstructed data
     std::string originalFile = argv[2]; // original file with uncompressed data for comparison
     std::string varName = argv[3];
 
-#if ADIOS2_USE_MPI
-    adios2::ADIOS adios("", comm);
-#else
-    adios2::ADIOS adios("");
-#endif
+    adios2::ADIOS adios;
 
     auto io = adios.DeclareIO("Reader");
     auto reader = io.Open(inputFile, adios2::Mode::Read);
@@ -150,10 +132,6 @@ int main(int argc, char** argv)
 
     reader.Close();
     originalReader.Close();
-
-#if ADIOS2_USE_MPI
-    MPI_Finalize();
-#endif
 
     return 0;
 }
